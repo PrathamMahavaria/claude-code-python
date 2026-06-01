@@ -19,61 +19,80 @@ def main():
 
     client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
 
-   
+    messages = [
+        {
+            "role": "user",
+            "content": args.p
+        }
+    ]
 
-    chat = client.chat.completions.create(
-        model="anthropic/claude-haiku-4.5",
-        messages=[{"role": "user", "content": args.p}],
-        tools=[
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "Read",
-                        "description": "Read and return the contents of a file",
-                        "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "file_path": {
-                            "type": "string",
-                            "description": "The path to the file to read"
+    while True:
+        chat = client.chat.completions.create(
+            
+            model="anthropic/claude-haiku-4.5",
+            messages=messages,
+            
+            tools=[
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "Read",
+                            "description": "Read and return the contents of a file",
+                            "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "file_path": {
+                                "type": "string",
+                                "description": "The path to the file to read"
+                                }
+                            },
+                            "required": ["file_path"]
                             }
-                        },
-                        "required": ["file_path"]
                         }
                     }
-                }
-        ],
-    )
-    
+            ],
+        )
 
+        message = chat.choices[0].message
+        messages.append({
+            "role": "assistant",
+            "content": message.content,
+            "tool_calls": message.tool_calls
+        })
+        if not chat.choices or len(chat.choices) == 0:
+            raise RuntimeError("no choices in response")
+        
+        tool_calls = chat.choices[0].message.tool_calls
 
-
-
-
-    if not chat.choices or len(chat.choices) == 0:
-        raise RuntimeError("no choices in response")
-    
-    tool_calls = chat.choices[0].message.tool_calls
-
-    if tool_calls:
         if tool_calls:
+                a = tool_calls[0].function.name
 
-            a = tool_calls[0].function.name
+                if a == "Read":
 
-            if a == "Read":
+                    text = tool_calls[0].function.arguments
 
-                text = tool_calls[0].function.arguments
+                    d = json.loads(text)
 
-                d = json.loads(text)
+                    with open(d["file_path"], "r") as f:
+                        content = f.read()
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_calls[0].id,
+                            "content": content
+                        })
+        
+        else:
+            # TODO: Uncomment the following line to pass the first stage
+            print(chat.choices[0].message.content)
+            # You can use print statements as follows for debugging, they'll be visible when running tests.
+            print("Logs from your program will appear here!", file=sys.stderr)
+            break
 
-                with open(d["file_path"], "r") as f:
-                    print(f.read())
+
+
+
+
     
-    else:
-        # TODO: Uncomment the following line to pass the first stage
-        print(chat.choices[0].message.content)
-    # You can use print statements as follows for debugging, they'll be visible when running tests.
-    print("Logs from your program will appear here!", file=sys.stderr)
 
     
 
