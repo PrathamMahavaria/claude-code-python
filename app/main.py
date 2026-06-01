@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import json
+import subprocess
 
 from openai import OpenAI
 
@@ -70,7 +71,24 @@ def main():
                             }
                             }
                         }
-                    }
+                    },
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "Bash",
+                            "description": "Execute a shell command",
+                            "parameters": {
+                            "type": "object",
+                            "required": ["command"],
+                            "properties": {
+                                "command": {
+                                "type": "string",
+                                "description": "The command to execute"
+                                }
+                            }
+                            }
+                        }
+                        }
             ],
         )
 
@@ -114,6 +132,25 @@ def main():
                             "tool_call_id": tool_calls[0].id,
                             "content": content
                         })
+
+
+                if a == "Bash":
+                    text = text = tool_calls[0].function.arguments
+
+                    d = json.loads(text)
+
+                    result = subprocess.run(
+                        d["command"].split(),
+                        capture_output=True,
+                        text=True
+                    )
+
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_calls[0].id,
+                        "content": result.stdout
+                    })
+
         
         else:
             # TODO: Uncomment the following line to pass the first stage
