@@ -101,6 +101,19 @@ def main():
                             "tool_call_id": tool_calls[0].id,
                             "content": content
                         })
+
+                if a== "Write":
+                    text = text = tool_calls[0].function.arguments
+
+                    d = json.loads(text)
+
+                    with open(d["file_path"],"w") as f:
+                        f.write(d["content"])
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_calls[0].id,
+                            "content": content
+                        })
         
         else:
             # TODO: Uncomment the following line to pass the first stage
